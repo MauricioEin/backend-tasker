@@ -3,7 +3,6 @@ const logger = require('../services/logger.service')
 const config = require('../config')
 
 function requireAuth(req, res, next) {
-
   if (config.isGuestMode && !req?.cookies?.loginToken) {
     req.loggedinUser = {_id: '', fullname: 'Guest'}
     return next()
