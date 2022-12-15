@@ -4,10 +4,16 @@ const utilService = require('../../services/util.service')
 const externalService = require('../../services/external.service')
 const ObjectId = require('mongodb').ObjectId
 
-async function query(filterBy = { txt: '' }) {
+async function query(filterBy = { txt: '', maxTries: Infinity, status: '' }) {
+
     try {
         const criteria = {
-            title: { $regex: filterBy.txt, $options: 'i' }
+            title: { $regex: filterBy.txt, $options: 'i' },
+            triesCount: { $lte: +filterBy.maxTries }
+        }
+        if (filterBy.status && filterBy.status !== 'done') {
+            logger.debug('got here')
+            criteria.status = { $ne: 'done' }
         }
         const collection = await dbService.getCollection('task')
         var tasks = await collection.find(criteria).toArray()
@@ -28,6 +34,7 @@ async function getById(taskId) {
         throw err
     }
 }
+
 
 async function remove(taskId) {
     try {
@@ -101,10 +108,8 @@ async function removeTaskMsg(taskId, msgId) {
 
 async function perform(taskId) {
     var task = await getById(taskId)
-    logger.debug('task:', task)
     try {
         task = await update({ ...task, status: 'running' })
-        logger.debug('running')
         await externalService.execute(task)
         task = await update({ ...task, status: 'done', doneAt: Date.now() })
     } catch (error) {
@@ -116,6 +121,16 @@ async function perform(taskId) {
     }
 }
 
+async function getNextTask() {
+    var maxTries = 0
+    while (maxTries < 6) {
+        const tasks = await query({ txt: '', maxTries, status: "active" })
+        if (tasks.length)
+            return tasks.sort((task1, task2) => task2.imp - task1.imp)[0]
+        maxTries++
+    }
+}
+
 module.exports = {
     remove,
     query,
@@ -124,5 +139,6 @@ module.exports = {
     update,
     addTaskMsg,
     removeTaskMsg,
-    perform
+    perform,
+    getNextTask,
 }

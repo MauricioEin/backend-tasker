@@ -1,12 +1,15 @@
 const taskService = require('./task.service.js')
 
 const logger = require('../../services/logger.service')
+var isWorkerOn = false
 
 async function getTasks(req, res) {
   try {
     logger.debug('Getting Tasks')
     const filterBy = {
-      txt: req.query.txt || ''
+      txt: req.query.txt || '',
+      maxTries: req.query.maxTries || Infinity,
+      status: req.query.status || ''
     }
     const tasks = await taskService.query(filterBy)
     res.json(tasks)
@@ -106,10 +109,38 @@ async function performTask(req, res) {
   } catch (err) {
     logger.error('Failed to perform task', err)
     res.status(500).send({ err: 'Failed to perform task' })
-
   }
 }
 
+
+function callWorker(req, res) {
+  const action = req.params.action
+  isWorkerOn = (action === 'start') ? true : false
+  if (isWorkerOn) runWorker()
+}
+
+async function runWorker() {
+  if (!isWorkerOn) return
+  var delay = 5000
+  try {
+    const task = await taskService.getNextTask()
+    if (task) {
+      try {
+        const performedTask = await taskService.perform(task._id)
+      } catch (err) {
+        console.log(`Failed Task`, err)
+      } finally {
+        delay = 1
+      }
+    } else {
+      console.log('Snoozing... no tasks to perform')
+    }
+  } catch (err) {
+    console.log(`Failed getting next task to execute`, err)
+  } finally {
+    setTimeout(runWorker, delay)
+  }
+}
 
 module.exports = {
   getTasks,
@@ -119,5 +150,6 @@ module.exports = {
   removeTask,
   addTaskMsg,
   removeTaskMsg,
-  performTask
+  performTask,
+  callWorker,
 }

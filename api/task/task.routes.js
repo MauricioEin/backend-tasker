@@ -1,7 +1,7 @@
 const express = require('express')
 const { requireAuth, requireAdmin } = require('../../middlewares/requireAuth.middleware')
 const { log } = require('../../middlewares/logger.middleware')
-const { getTasks, getTaskById, addTask, updateTask, removeTask, addTaskMsg, removeTaskMsg, performTask } = require('./task.controller')
+const { getTasks, getTaskById, addTask, updateTask, removeTask, addTaskMsg, removeTaskMsg, performTask, callWorker } = require('./task.controller')
 const router = express.Router()
 
 // middleware that is specific to this router
@@ -9,6 +9,7 @@ const router = express.Router()
 
 router.get('/', log, getTasks)
 router.get('/:id', getTaskById)
+router.get('/worker/:action', callWorker)
 router.get('/:id/start', performTask)
 router.post('/', requireAuth, addTask)
 router.put('/:id', requireAuth, updateTask)
