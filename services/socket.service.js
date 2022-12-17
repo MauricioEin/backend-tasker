@@ -24,14 +24,14 @@ function setupSocketAPI(http) {
       socket.join(topic)
       socket.myTopic = topic
     })
-    socket.on('chat-send-msg', (msg) => {
+    socket.on('task-updated', (task) => {
       logger.info(
-        `New chat msg from socket [id: ${socket.id}], emitting to topic ${socket.myTopic}`
-      )
+        `task updated from socket [id: ${socket.id}]`
+      ) 
       // emits to all sockets:
-      // gIo.emit('chat addMsg', msg)
+      // gIo.emit('task-updated', task)
       // emits only to sockets in the same room
-      gIo.to(socket.myTopic).emit('chat-add-msg', msg)
+      gIo.to(socket.myTopic).emit('task-updated', task)
     })
     socket.on('user-watch', (userId) => {
       logger.info(

@@ -1,4 +1,5 @@
 const taskService = require('./task.service.js')
+const socketService = require('../../services/socket.service')
 
 const logger = require('../../services/logger.service')
 var isWorkerOn = false
@@ -37,6 +38,8 @@ async function addTask(req, res) {
     const task = req.body
     task.owner = loggedinUser
     const addedTask = await taskService.add(task)
+    socketService.emitTo({ type: 'task-added', data: addedTask })
+
     res.json(addedTask)
   } catch (err) {
     logger.error('Failed to add task', err)
@@ -49,6 +52,8 @@ async function updateTask(req, res) {
   try {
     const task = req.body
     const updatedTask = await taskService.update(task)
+    socketService.emitTo({ type: 'task-updated', data: updatedTask })
+
     res.json(updatedTask)
   } catch (err) {
     logger.error('Failed to update task', err)
@@ -61,6 +66,8 @@ async function removeTask(req, res) {
   try {
     const taskId = req.params.id
     const removedId = await taskService.remove(taskId)
+    socketService.emitTo({ type: 'task-removed', data: taskId })
+
     res.send(removedId)
   } catch (err) {
     logger.error('Failed to remove task', err)
@@ -104,6 +111,7 @@ async function performTask(req, res) {
   try {
     const taskId = req.params.id
     const updatedTask = await taskService.perform(taskId)
+    socketService.emitTo({ type: 'task-updated', data: updatedTask })
 
     res.json(updatedTask)
   } catch (err) {
@@ -127,6 +135,8 @@ async function runWorker() {
     if (task) {
       try {
         const performedTask = await taskService.perform(task._id)
+        socketService.emitTo({ type: 'task-updated', data: performedTask })
+
       } catch (err) {
         console.log(`Failed Task`, err)
       } finally {
